@@ -15,8 +15,9 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://localhost:3000",
-        "https://frontend-traveling-platform.vercel.app", # Replace with actual Vercel URL if known, or keep * for simplicity but user asked for Vercel domain
-        "*", # Fallback to * for now to ensure connectivity, but usually we list specific domains
+        "https://brown-travel-ai.vercel.app",
+        "https://frontend-traveling-platform.vercel.app",
+        "*",
     ],
     allow_credentials=True,
     allow_methods=["*"],
