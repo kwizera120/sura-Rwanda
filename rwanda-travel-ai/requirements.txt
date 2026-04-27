@@ -5,7 +5,6 @@ requests
 openpyxl
 scikit-learn
 python-dotenv
-libretranslate
-argostranslate
+langdetect
 uvicorn[standard]
 

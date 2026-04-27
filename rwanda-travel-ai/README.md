@@ -43,6 +43,11 @@ uvicorn backend.main:app --reload --port 8000
 4. **Open in Browser**
 Navigate to `http://localhost:8000`
 
+> If port `8000` is already in use, you can start the server on an alternate port:
+> ```bash
+> uvicorn backend.main:app --reload --port 8080
+> ```
+
 ## Translation Feature
 
 The app includes a powerful translation widget supporting:
@@ -129,6 +134,8 @@ jupyter notebook notebooks/train_model.ipynb
 # Use a different port
 uvicorn backend.main:app --reload --port 8080
 ```
+
+> The app defaults to `http://localhost:8000`. Use `8080` only if `8000` is occupied.
 
 ## License
 

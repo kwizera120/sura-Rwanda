@@ -1,7 +1,5 @@
 from pathlib import Path
-
-import joblib
-import pandas as pd
+from typing import Any
 
 MODEL_PATH = Path(__file__).with_name("ml_model.pkl")
 
@@ -50,7 +48,7 @@ class LocalFallbackModel:
         }
         return numeric_mapping.get(numeric_value, 1.0)
 
-    def predict(self, input_data: pd.DataFrame):
+    def predict(self, input_data: Any):
         predictions = []
 
         for _, row in input_data.iterrows():
@@ -64,14 +62,21 @@ class LocalFallbackModel:
         return predictions
 
 
-def load_model():
+_model = None
+
+def get_model():
+    global _model
+    if _model is not None:
+        return _model
+
     if not MODEL_PATH.exists():
-        return LocalFallbackModel()
+        _model = LocalFallbackModel()
+        return _model
 
     try:
-        return joblib.load(MODEL_PATH)
+        import joblib
+        _model = joblib.load(MODEL_PATH)
     except Exception:
-        return LocalFallbackModel()
-
-
-model = load_model()
+        _model = LocalFallbackModel()
+    
+    return _model

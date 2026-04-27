@@ -593,6 +593,60 @@ const server = createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
 
   try {
+    // Proxy /api/ai/* to the local AI backend (FastAPI)
+    if (url.pathname.startsWith('/api/ai')) {
+      const aiBackend = process.env.AI_BACKEND || 'http://localhost:8000';
+      const aiPath = url.pathname.replace(/^\/api\/ai/, '') || '/';
+      const targetUrl = aiBackend.replace(/\/$/, '') + aiPath + (url.search || '');
+      console.log('[proxy] forwarding', req.method, url.pathname, '->', targetUrl);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 20000);
+
+      try {
+        // Read JSON body (if any)
+        let bodyObj = null;
+        if (req.method !== 'GET' && req.method !== 'HEAD') {
+          try {
+            bodyObj = await parseBody(req);
+          } catch (e) {
+            bodyObj = null;
+          }
+        }
+
+        // Build headers to forward (omit hop-by-hop headers)
+        const forwardHeaders = {};
+        for (const [k, v] of Object.entries(req.headers || {})) {
+          if (['host', 'connection', 'content-length', 'accept-encoding'].includes(k)) continue;
+          forwardHeaders[k] = v;
+        }
+
+        const fetchOptions = { method: req.method, headers: forwardHeaders, signal: controller.signal };
+        if (bodyObj && Object.keys(bodyObj).length > 0) {
+          fetchOptions.body = JSON.stringify(bodyObj);
+          fetchOptions.headers = { ...fetchOptions.headers, 'content-type': 'application/json' };
+        }
+
+        const aiResp = await fetch(targetUrl, fetchOptions);
+        const text = await aiResp.text();
+        const contentType = aiResp.headers.get('content-type') || 'application/json; charset=utf-8';
+
+        res.writeHead(aiResp.status, {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': 'Content-Type',
+          'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+          'Content-Type': contentType,
+        });
+        res.end(text);
+        return;
+      } catch (err) {
+        console.error('[proxy] error proxying to AI backend', String(err));
+        sendJson(res, 502, { error: 'AI backend unreachable', detail: String(err) });
+        return;
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    }
     if (req.method === 'GET' && url.pathname === '/api/health') {
       sendJson(res, 200, { ok: true, service: 'travel-backend' });
       return;

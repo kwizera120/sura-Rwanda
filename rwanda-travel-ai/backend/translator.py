@@ -4,19 +4,6 @@ from pathlib import Path
 import requests
 from dotenv import load_dotenv
 
-try:
-    import argostranslate.package
-    import argostranslate.translate
-    ARGOS_AVAILABLE = True
-except Exception:
-    ARGOS_AVAILABLE = False
-
-try:
-    from langdetect import detect as langdetect_detect
-    LANGDETECT_AVAILABLE = True
-except Exception:
-    LANGDETECT_AVAILABLE = False
-
 ENV_PATH = Path(__file__).with_name(".env")
 load_dotenv(ENV_PATH)
 
@@ -34,40 +21,12 @@ if LIBRETRANSLATE_API_KEY:
         "https://translate.argosopentech.com/translate",
     ])
 
-SWAHILI_HINTS = {
-    "safari",
-    "njema",
-    "habari",
-    "asante",
-    "rafiki",
-    "karibu",
-    "nzuri",
-    "sawa",
-    "pole",
-    "mambo",
-}
-KW_HINTS = {
-    "amakuru",
-    "muraho",
-    "urakoze",
-    "ndetse",
-    "muri",
-    "ikaze",
-}
+# Swahili and Kinyarwanda keyword hints for fast detection
+SWAHILI_HINTS = {"safari", "njema", "habari", "asante", "rafiki", "karibu", "nzuri", "sawa", "pole", "mambo"}
+KW_HINTS = {"amakuru", "muraho", "urakoze", "ndetse", "muri", "ikaze"}
 
 SUPPORTED_LANG_CODES = {
-    "en",
-    "fr",
-    "rw",
-    "sw",
-    "es",
-    "de",
-    "it",
-    "pt",
-    "ar",
-    "ru",
-    "zh",
-    "ja",
+    "en", "fr", "rw", "sw", "es", "de", "it", "pt", "ar", "ru", "zh", "ja",
 }
 
 
@@ -85,14 +44,13 @@ def _detect_by_hint(text: str) -> str | None:
 
 
 def _detect_with_langdetect(text: str) -> str | None:
-    if not LANGDETECT_AVAILABLE:
-        return None
     try:
+        from langdetect import detect as langdetect_detect
         guessed = langdetect_detect(text)
         if guessed and guessed in SUPPORTED_LANG_CODES:
             return guessed
     except Exception:
-        return None
+        pass
     return None
 
 
@@ -106,32 +64,6 @@ def _get_detect_url() -> str | None:
     if LIBRETRANSLATE_API_KEY:
         return "https://libretranslate.com/detect"
     return None
-
-
-def _try_argos_translate(text: str, source_lang: str, target_lang: str) -> str | None:
-    if not ARGOS_AVAILABLE:
-        return None
-
-    source = _normalize_lang(source_lang)
-    target = _normalize_lang(target_lang)
-    if source == "auto" or not source or not target:
-        return None
-
-    try:
-        installed_languages = argostranslate.translate.get_installed_languages()
-        from_lang = next((lang for lang in installed_languages if lang.code == source), None)
-        to_lang = next((lang for lang in installed_languages if lang.code == target), None)
-        if not from_lang or not to_lang:
-            return None
-
-        translation = from_lang.get_translation(to_lang)
-        if not translation:
-            return None
-
-        translated = translation.translate(text).strip()
-        return translated if translated else None
-    except Exception:
-        return None
 
 
 def _try_libretranslate(text: str, source_lang: str, target_lang: str) -> str | None:
@@ -159,6 +91,7 @@ def _try_libretranslate(text: str, source_lang: str, target_lang: str) -> str | 
 
 
 def _try_mymemory(text: str, source_lang: str, target_lang: str) -> str | None:
+    # Use detect_language if source is auto
     source = detect_language(text) if _normalize_lang(source_lang) == "auto" else _normalize_lang(source_lang)
     target = _normalize_lang(target_lang)
     if not source or not target:
@@ -203,7 +136,7 @@ def _detect_with_hosted_service(text: str) -> str | None:
 
 
 def detect_language(text: str) -> str:
-    """Detect language using local/hosed services with fallback to langdetect and keyword hints."""
+    """Detect language using hosted services with fallback to langdetect and keyword hints."""
     if not text or not text.strip():
         return "en"
 
@@ -215,10 +148,9 @@ def detect_language(text: str) -> str:
     if detected and detected != "en":
         return detected
 
-    if LANGDETECT_AVAILABLE:
-        guessed = _detect_with_langdetect(text)
-        if guessed and guessed != "en":
-            return guessed
+    guessed = _detect_with_langdetect(text)
+    if guessed and guessed != "en":
+        return guessed
 
     return detected or "en"
 
@@ -233,10 +165,7 @@ def translate_text(text: str, source_lang: str, target_lang: str) -> str:
     if source == "auto":
         source = detect_language(text)
 
-    local_translation = _try_argos_translate(text, source, target)
-    if local_translation:
-        return local_translation
-
+    # We removed local Argos Translate to save memory on free tier
     online_translation = _try_libretranslate(text, source, target)
     if online_translation:
         return online_translation
@@ -246,5 +175,5 @@ def translate_text(text: str, source_lang: str, target_lang: str) -> str:
         return free_fallback_translation
 
     raise RuntimeError(
-        "Translation failed. Ensure LibreTranslate/Argos Translate are installed and reachable, or verify the source/target language values."
+        "Translation failed. No reachable translation services found."
     )

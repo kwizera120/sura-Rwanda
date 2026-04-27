@@ -1,9 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
-import pandas as pd
-
-from backend.model_loader import model
+from backend.model_loader import get_model
 
 DATA_PATH = Path(__file__).resolve().parent.parent / "data" / "routes.xlsx"
 
@@ -13,7 +11,8 @@ def _normalize(value) -> str:
 
 
 @lru_cache(maxsize=1)
-def _load_routes_dataframe() -> pd.DataFrame:
+def _load_routes_dataframe():
+    import pandas as pd
     if not DATA_PATH.exists() or DATA_PATH.stat().st_size == 0:
         return pd.DataFrame()
 
@@ -26,15 +25,15 @@ def _load_routes_dataframe() -> pd.DataFrame:
 
 
 def _lookup_known_price(from_city, to_city, distance_km, transport_type, demand):
-    dataframe = _load_routes_dataframe()
-    if dataframe.empty:
+    df = _load_routes_dataframe()
+    if df.empty:
         return None
 
-    filtered = dataframe[
-        dataframe["from_city"].astype(str).str.strip().str.lower().eq(_normalize(from_city))
-        & dataframe["to_city"].astype(str).str.strip().str.lower().eq(_normalize(to_city))
-        & dataframe["transport_type"].astype(str).str.strip().str.lower().eq(_normalize(transport_type))
-        & dataframe["demand"].astype(str).str.strip().str.lower().eq(_normalize(demand))
+    filtered = df[
+        df["from_city"].astype(str).str.strip().str.lower().eq(_normalize(from_city))
+        & df["to_city"].astype(str).str.strip().str.lower().eq(_normalize(to_city))
+        & df["transport_type"].astype(str).str.strip().str.lower().eq(_normalize(transport_type))
+        & df["demand"].astype(str).str.strip().str.lower().eq(_normalize(demand))
     ]
 
     if filtered.empty:
@@ -49,9 +48,11 @@ def predict_price(from_city, to_city, distance_km, transport_type, demand):
     if known_price is not None:
         return known_price
 
+    import pandas as pd
     input_data = pd.DataFrame(
         [[from_city, to_city, distance_km, transport_type, demand]],
         columns=["from_city", "to_city", "Distance_km", "transport_type", "demand"],
     )
 
+    model = get_model()
     return float(model.predict(input_data)[0])

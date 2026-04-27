@@ -2,10 +2,6 @@ import re
 from functools import lru_cache
 from pathlib import Path
 
-import pandas as pd
-
-from backend.predictor import predict_price
-
 DATA_PATH = Path(__file__).resolve().parent.parent / "data" / "routes.xlsx"
 
 COLUMN_ALIASES = {
@@ -32,7 +28,8 @@ def _find_column(columns: list[str], aliases: list[str]) -> str | None:
 
 
 @lru_cache(maxsize=1)
-def load_routes_dataframe() -> pd.DataFrame:
+def load_routes_dataframe():
+    import pandas as pd
     if not DATA_PATH.exists() or DATA_PATH.stat().st_size == 0:
         return pd.DataFrame()
 
@@ -46,6 +43,7 @@ def load_routes_dataframe() -> pd.DataFrame:
 
 @lru_cache(maxsize=1)
 def load_districts() -> list[str]:
+    import pandas as pd
     if not DATA_PATH.exists() or DATA_PATH.stat().st_size == 0:
         return []
 
@@ -177,6 +175,7 @@ def _build_model_context(message: str) -> str | None:
     demand = _extract_demand(message)
 
     try:
+        from backend.predictor import predict_price
         estimate = predict_price(from_city, to_city, distance, transport, demand)
     except Exception:
         return None

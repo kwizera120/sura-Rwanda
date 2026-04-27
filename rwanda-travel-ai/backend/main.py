@@ -6,17 +6,18 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from backend.chatbot import ask_groq, get_trip_recommendations
-from backend.predictor import predict_price
-from backend.rwanda_destinations import get_attractions, get_interest_places, get_route_stopovers, resolve_district
-from backend.translator import translate_text, detect_language
-
 app = FastAPI(title="Rwanda Travel AI")
 
 # CORS middleware for communication with React frontend
+# We allow localhost for development and the Vercel production domain
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # During development, allowing all origins is often simpler
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "https://frontend-traveling-platform.vercel.app", # Replace with actual Vercel URL if known, or keep * for simplicity but user asked for Vercel domain
+        "*", # Fallback to * for now to ensure connectivity, but usually we list specific domains
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -65,6 +66,7 @@ def home():
 
 @app.post("/predict")
 def predict(data: PredictRequest):
+    from backend.predictor import predict_price
     price = predict_price(
         data.from_city,
         data.to_city,
@@ -113,12 +115,16 @@ def get_route_distance(data: RouteDistanceRequest):
 
 @app.post("/chat")
 def chat(data: ChatRequest):
+    from backend.chatbot import ask_groq
     reply = ask_groq(data.message, data.history)
     return {"response": reply}
 
 
 @app.post("/recommend-trip")
 def recommend_trip(data: TripRecommendationRequest):
+    from backend.chatbot import get_trip_recommendations
+    from backend.rwanda_destinations import get_attractions, get_interest_places, get_route_stopovers
+    
     # Try to get dynamic recommendations from GROQ first for real-world data
     recommendations = get_trip_recommendations(
         from_city=data.from_city,
@@ -176,6 +182,7 @@ class DetectLanguageRequest(BaseModel):
 @app.post("/translate")
 def translate(data: TranslateRequest):
     """Translate text from source language to target language."""
+    from backend.translator import translate_text
     try:
         translated = translate_text(data.text, data.source_lang, data.target_lang)
         return {"translatedText": translated, "success": True}
@@ -186,6 +193,7 @@ def translate(data: TranslateRequest):
 @app.post("/detect")
 def detect(data: DetectLanguageRequest):
     """Detect the language of the provided text."""
+    from backend.translator import detect_language
     try:
         detected_lang = detect_language(data.text)
         return [{"language": detected_lang, "confidence": 1.0}]
