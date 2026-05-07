@@ -6,18 +6,24 @@ from dotenv import load_dotenv
 ENV_PATH = Path(__file__).parent / ".env"
 load_dotenv(ENV_PATH)
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
-
 def ask_gemini(message: str, history: list[dict] | None = None, system_instruction: str = "") -> str:
+    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
     if not GEMINI_API_KEY:
         return "Gemini API Key not found. Please check your .env file."
 
-    # Convert history to Gemini format
+    GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+
     contents = []
+    
     if system_instruction:
-        contents.append({"role": "user", "parts": [{"text": f"System Instruction: {system_instruction}"}]})
-        contents.append({"role": "model", "parts": [{"text": "Understood. I will follow these instructions."}]})
+        contents.append({
+            "role": "user",
+            "parts": [{"text": f"System Instruction: {system_instruction}"}]
+        })
+        contents.append({
+            "role": "model", 
+            "parts": [{"text": "Understood. I will follow these instructions."}]
+        })
 
     if history:
         for item in history:

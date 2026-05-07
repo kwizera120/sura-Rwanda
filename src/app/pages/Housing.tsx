@@ -166,15 +166,12 @@ export function Housing() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen relative">
       <Navigation />
       <main className="flex-grow bg-slate-50/50 pb-20">
         {/* Hero Section */}
-        <div className="bg-white border-b border-slate-200 py-12 mb-8">
+        <div className="bg-white border-b border-slate-200 py-6 mb-8">
           <div className="max-w-7xl mx-auto px-4 text-center">
-            <Badge className="mb-4 bg-primary/10 text-primary hover:bg-primary/20 border-none px-4 py-1">
-              Premium Real Estate AI
-            </Badge>
             <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mb-4 tracking-tight">
               Find Your Perfect Home in <span className="text-primary">Rwanda</span>
             </h1>
@@ -426,7 +423,7 @@ export function Housing() {
                 <CardContent className="p-8 text-center">
                   <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/20 text-primary text-xs font-black uppercase tracking-widest mb-6">
                     <span className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-                    AI Valuation Result
+                    Market Value
                   </div>
                   
                   <p className="text-slate-400 font-bold text-sm uppercase tracking-wider mb-2">
@@ -459,72 +456,6 @@ export function Housing() {
               </Card>
 
               <div className="relative">
-                <AnimatePresence>
-                  {isChatOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                      className="absolute inset-0 z-30 bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden flex flex-col h-[500px]"
-                    >
-                      <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
-                        <h4 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                          <Bot className="w-5 h-5 text-primary" />
-                          Housing AI Assistant
-                        </h4>
-                        <button 
-                          onClick={() => setIsChatOpen(false)}
-                          className="p-2 hover:bg-slate-100 rounded-full transition-colors"
-                        >
-                          <X className="w-5 h-5 text-slate-500" />
-                        </button>
-                      </div>
-
-                      <div className="flex-grow overflow-y-auto p-4 space-y-4 bg-slate-50/50">
-                        {chatMessages.map((m, idx) => (
-                          <div key={idx} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`max-w-[85%] p-3 rounded-2xl text-sm ${
-                              m.role === 'user' 
-                                ? 'bg-primary text-white rounded-tr-none' 
-                                : 'bg-white border border-slate-200 text-slate-700 rounded-tl-none shadow-sm'
-                            }`}>
-                              <div className="flex items-center gap-2 mb-1">
-                                {m.role === 'user' ? <User className="w-3 h-3" /> : <Bot className="w-3 h-3 text-primary" />}
-                                <span className="text-[10px] font-bold uppercase tracking-wider opacity-70">
-                                  {m.role === 'user' ? 'You' : 'AI Assistant'}
-                                </span>
-                              </div>
-                              <p className="leading-relaxed">{m.content}</p>
-                            </div>
-                          </div>
-                        ))}
-                        {isChatLoading && (
-                          <div className="flex justify-start">
-                            <div className="bg-white border border-slate-200 p-3 rounded-2xl rounded-tl-none shadow-sm">
-                              <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                            </div>
-                          </div>
-                        )}
-                        <div ref={chatEndRef} />
-                      </div>
-
-                      <form onSubmit={handleSendMessage} className="p-4 border-t border-slate-100 bg-white">
-                        <div className="flex gap-2">
-                          <Input
-                            placeholder="Ask about properties..."
-                            value={inputMessage}
-                            onChange={(e) => setInputMessage(e.target.value)}
-                            className="rounded-xl border-slate-200 focus:ring-primary"
-                          />
-                          <Button type="submit" size="icon" disabled={isChatLoading} className="rounded-xl shrink-0">
-                            <Send className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </form>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
                 <motion.div 
                   className="grid grid-cols-1 gap-4 z-10 relative"
                   style={{ y: y1, opacity }}
@@ -580,6 +511,86 @@ export function Housing() {
           </div>
         </div>
       </main>
+
+      {/* Floating Chatbot in bottom-right corner */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <AnimatePresence>
+          {isChatOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.95, transformOrigin: 'bottom right' }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.95 }}
+              className="mb-4 bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden flex flex-col h-[500px] w-[380px]"
+            >
+              <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
+                <h4 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                  <Bot className="w-5 h-5 text-primary" />
+                  Housing AI Assistant
+                </h4>
+                <button 
+                  onClick={() => setIsChatOpen(false)}
+                  className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5 text-slate-500" />
+                </button>
+              </div>
+
+              <div className="flex-grow overflow-y-auto p-4 space-y-4 bg-slate-50/50">
+                {chatMessages.map((m, idx) => (
+                  <div key={idx} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[85%] p-3 rounded-2xl text-sm ${
+                      m.role === 'user' 
+                        ? 'bg-primary text-white rounded-tr-none' 
+                        : 'bg-white border border-slate-200 text-slate-700 rounded-tl-none shadow-sm'
+                    }`}>
+                      <div className="flex items-center gap-2 mb-1">
+                        {m.role === 'user' ? <User className="w-3 h-3" /> : <Bot className="w-3 h-3 text-primary" />}
+                        <span className="text-[10px] font-bold uppercase tracking-wider opacity-70">
+                          {m.role === 'user' ? 'You' : 'AI Assistant'}
+                        </span>
+                      </div>
+                      <p className="leading-relaxed">{m.content}</p>
+                    </div>
+                  </div>
+                ))}
+                {isChatLoading && (
+                  <div className="flex justify-start">
+                    <div className="bg-white border border-slate-200 p-3 rounded-2xl rounded-tl-none shadow-sm">
+                      <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                    </div>
+                  </div>
+                )}
+                <div ref={chatEndRef} />
+              </div>
+
+              <form onSubmit={handleSendMessage} className="p-4 border-t border-slate-100 bg-white">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Ask about properties..."
+                    value={inputMessage}
+                    onChange={(e) => setInputMessage(e.target.value)}
+                    className="rounded-xl border-slate-200 focus:ring-primary"
+                  />
+                  <Button type="submit" size="icon" disabled={isChatLoading} className="rounded-xl shrink-0">
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </div>
+              </form>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        
+        {/* Chat Toggle Button (Optional, but good for UX) */}
+        {!isChatOpen && (
+          <Button 
+            onClick={() => setIsChatOpen(true)}
+            className="w-14 h-14 rounded-full shadow-2xl bg-primary hover:bg-primary/90 flex items-center justify-center"
+          >
+            <Bot className="w-7 h-7 text-white" />
+          </Button>
+        )}
+      </div>
+
       <Footer />
     </div>
   );
