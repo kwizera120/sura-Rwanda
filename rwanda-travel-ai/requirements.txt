@@ -7,4 +7,5 @@ scikit-learn
 python-dotenv
 langdetect
 uvicorn[standard]
+groq
 

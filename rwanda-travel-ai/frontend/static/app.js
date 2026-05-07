@@ -63,9 +63,19 @@ if (SpeechRecognition && chatMicBtn) {
 const chatHistory = [
   {
     role: "assistant",
-    content: "Hello! Ask about routes, prices, or how to use the fare estimator.",
+    content: "Hello! I am your Rwanda Travel & Housing AI assistant. Ask me about routes, fare estimates, or finding your perfect home in Rwanda!",
   },
 ];
+
+// Render initial message
+window.addEventListener('DOMContentLoaded', () => {
+  if (chatHistory.length > 0) {
+    appendMessage(chatHistory[0].role, chatHistory[0].content);
+  }
+  if (window.lucide) {
+    lucide.createIcons();
+  }
+});
 
 const translatorPanel = document.querySelector("#translator-panel");
 const translatorToggle = document.querySelector("#translator-toggle");
@@ -133,25 +143,134 @@ function setStatus(element, text) {
 
 function appendMessage(role, text) {
   if (!chatWindow) return;
+  
+  const isAI = role === "ai" || role === "assistant";
+  
+  // Extract property data if present
+  let propertyData = null;
+  let cleanText = text;
+  const propertyMatch = text.match(/\[PROPERTY_DATA\]([\s\S]*?)\[\/PROPERTY_DATA\]/);
+  
+  if (propertyMatch) {
+    try {
+      propertyData = JSON.parse(propertyMatch[1].trim());
+      cleanText = text.replace(/\[PROPERTY_DATA\][\s\S]*?\[\/PROPERTY_DATA\]/, '').trim();
+    } catch (e) {
+      console.error("Failed to parse property data", e);
+    }
+  }
+
   const article = document.createElement("article");
-  article.className = `message ${role}`;
+  article.className = `flex w-full mb-6 ${isAI ? 'justify-start' : 'justify-end'} animate-in fade-in slide-in-from-bottom-2 duration-300`;
 
-  const roleLine = document.createElement("p");
-  roleLine.className = "message-role";
-  roleLine.textContent = role === "user" ? "You" : "Rwanda Travel AI";
+  const container = document.createElement("div");
+  container.className = `flex max-w-[85%] ${isAI ? 'flex-row' : 'flex-row-reverse'} items-start gap-3`;
 
-  const body = document.createElement("p");
-  body.textContent = text;
+  const iconDiv = document.createElement("div");
+  iconDiv.className = `flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${isAI ? 'bg-brand text-white' : 'bg-gray-200 text-gray-600'}`;
+  iconDiv.innerHTML = isAI ? '<i data-lucide="bot" class="w-5 h-5"></i>' : '<i data-lucide="user" class="w-5 h-5"></i>';
 
-  article.append(roleLine, body);
+  const contentWrapper = document.createElement("div");
+  contentWrapper.className = `flex flex-col ${isAI ? 'items-start' : 'items-end'} gap-2`;
+
+  const bubble = document.createElement("div");
+  bubble.className = `px-4 py-3 rounded-2xl shadow-sm ${
+    isAI 
+      ? 'bg-white text-gray-800 rounded-tl-none border border-gray-100' 
+      : 'bg-brand text-white rounded-tr-none'
+  }`;
+
+  const body = document.createElement("div");
+  body.className = `prose prose-sm max-w-none ${isAI ? 'text-gray-800' : 'text-white prose-invert'} 
+    prose-p:leading-relaxed prose-pre:bg-gray-800 prose-pre:text-gray-100 prose-strong:font-bold`;
+  body.innerHTML = marked.parse(cleanText);
+
+  bubble.appendChild(body);
+  contentWrapper.appendChild(bubble);
+
+  // Render Housing Card if data exists
+  if (propertyData) {
+    const card = document.createElement("div");
+    card.className = "bg-white border border-gray-100 rounded-xl overflow-hidden shadow-md max-w-sm hover:shadow-lg transition-shadow duration-300";
+    card.innerHTML = `
+      <div class="h-40 bg-gray-200 relative overflow-hidden">
+        <img src="${propertyData.image_url || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=800&q=80'}" 
+             alt="${propertyData.title}" class="w-full h-full object-cover">
+        <div class="absolute top-2 right-2 bg-brand text-white text-xs font-bold px-2 py-1 rounded">
+          ${propertyData.price}
+        </div>
+      </div>
+      <div class="p-4">
+        <h4 class="font-bold text-gray-800 text-base mb-1">${propertyData.title}</h4>
+        <div class="flex items-center text-gray-500 text-xs mb-3">
+          <i data-lucide="map-pin" class="w-3 h-3 mr-1"></i>
+          ${propertyData.location}
+        </div>
+        <div class="flex items-center gap-4 border-t pt-3">
+          <div class="flex items-center text-gray-600 text-xs">
+            <i data-lucide="bed" class="w-4 h-4 mr-1 text-brand"></i>
+            ${propertyData.bedrooms} Bed
+          </div>
+          <div class="flex items-center text-gray-600 text-xs">
+            <i data-lucide="bath" class="w-4 h-4 mr-1 text-brand"></i>
+            ${propertyData.bathrooms} Bath
+          </div>
+        </div>
+        <button class="w-full mt-4 bg-gray-50 hover:bg-gray-100 text-brand font-bold py-2 rounded-lg text-sm transition-colors">
+          View Details
+        </button>
+      </div>
+    `;
+    contentWrapper.appendChild(card);
+  }
+
+  const time = document.createElement("span");
+  time.className = "text-[10px] text-gray-400 mt-1 px-1";
+  time.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  contentWrapper.appendChild(time);
+
+  container.appendChild(iconDiv);
+  container.appendChild(contentWrapper);
+  article.appendChild(container);
+  
   chatWindow.appendChild(article);
+  if (window.lucide) lucide.createIcons();
   chatWindow.scrollTop = chatWindow.scrollHeight;
+}
+
+function showTypingIndicator() {
+  if (!chatWindow) return;
+  const indicator = document.createElement("div");
+  indicator.id = "typing-indicator";
+  indicator.className = "flex justify-start mb-6 animate-in fade-in duration-200";
+  indicator.innerHTML = `
+    <div class="flex items-start gap-3">
+      <div class="w-8 h-8 rounded-full bg-brand text-white flex items-center justify-center">
+        <i data-lucide="bot" class="w-5 h-5"></i>
+      </div>
+      <div class="bg-white border border-gray-100 px-4 py-3 rounded-2xl rounded-tl-none shadow-sm">
+        <div class="flex gap-1">
+          <span class="w-1.5 h-1.5 bg-gray-300 rounded-full animate-bounce"></span>
+          <span class="w-1.5 h-1.5 bg-gray-300 rounded-full animate-bounce [animation-delay:0.2s]"></span>
+          <span class="w-1.5 h-1.5 bg-gray-300 rounded-full animate-bounce [animation-delay:0.4s]"></span>
+        </div>
+      </div>
+    </div>
+  `;
+  chatWindow.appendChild(indicator);
+  if (window.lucide) lucide.createIcons();
+  chatWindow.scrollTop = chatWindow.scrollHeight;
+}
+
+function hideTypingIndicator() {
+  const indicator = document.getElementById("typing-indicator");
+  if (indicator) indicator.remove();
 }
 
 function renderRecommendations(result) {
   if (!recommendationsContainer || !emptyResultsState) return;
 
-  if (!result || !result.recommendations) {
+  if (!result || !result.recommendations || result.recommendations.length === 0) {
     emptyResultsState.style.display = "flex";
     recommendationsContainer.style.display = "none";
     return;
@@ -166,25 +285,59 @@ function renderRecommendations(result) {
     ? Math.round(budget_usd / (duration_days * travelers)) 
     : 0;
 
-  // 1. Header Card
+  // Modern Assistant Style Header
   const headerCard = document.createElement("div");
-  headerCard.className = "plan-header-card";
+  headerCard.className = "w-full bg-white rounded-3xl p-8 border border-gray-100 shadow-xl shadow-brand/5 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500";
   headerCard.innerHTML = `
-    <h2>✓ Your Personalized Plan</h2>
-    <p class="plan-summary">Based on $${budget_usd} for ${duration_days} days with ${travelers} traveler(s)</p>
-    <div class="daily-budget">
-      <span>Daily budget per person</span>
-      <strong>$${dailyBudget}</strong>
+    <div class="flex items-start justify-between mb-8">
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 bg-brand/10 text-brand rounded-2xl flex items-center justify-center">
+          <i data-lucide="sparkles" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <h2 class="text-2xl font-bold text-gray-800">Your AI Itinerary</h2>
+          <p class="text-sm text-gray-500">Personalized travel plan for your trip</p>
+        </div>
+      </div>
+      <div class="text-right">
+        <div class="text-xs font-bold text-brand uppercase tracking-wider mb-1">Daily Budget</div>
+        <div class="text-3xl font-black text-gray-800">$${dailyBudget}</div>
+        <div class="text-[10px] text-gray-400 font-medium">per person / day</div>
+      </div>
+    </div>
+    
+    <div class="grid grid-cols-3 gap-4 mb-8">
+      <div class="bg-gray-50/50 p-4 rounded-2xl border border-gray-100/50">
+        <div class="text-gray-400 mb-1 flex items-center gap-2">
+          <i data-lucide="wallet" class="w-3 h-3"></i>
+          <span class="text-[10px] font-bold uppercase tracking-widest">Total Budget</span>
+        </div>
+        <div class="text-lg font-bold text-gray-700">$${budget_usd}</div>
+      </div>
+      <div class="bg-gray-50/50 p-4 rounded-2xl border border-gray-100/50">
+        <div class="text-gray-400 mb-1 flex items-center gap-2">
+          <i data-lucide="calendar" class="w-3 h-3"></i>
+          <span class="text-[10px] font-bold uppercase tracking-widest">Duration</span>
+        </div>
+        <div class="text-lg font-bold text-gray-700">${duration_days} Days</div>
+      </div>
+      <div class="bg-gray-50/50 p-4 rounded-2xl border border-gray-100/50">
+        <div class="text-gray-400 mb-1 flex items-center gap-2">
+          <i data-lucide="users" class="w-3 h-3"></i>
+          <span class="text-[10px] font-bold uppercase tracking-widest">Travelers</span>
+        </div>
+        <div class="text-lg font-bold text-gray-700">${travelers} People</div>
+      </div>
     </div>
   `;
   recommendationsContainer.appendChild(headerCard);
 
-  // Group recommendations into categories
+  // Categories with matching icons
   const categories = {
-    "Recommended Accommodation": "🏨",
-    "Suggested Activities": "🎯",
-    "Food & Dining": "🍴",
-    "Transportation": "🚗"
+    "Recommended Accommodation": { icon: "hotel", color: "blue" },
+    "Suggested Activities": { icon: "map-pin", color: "orange" },
+    "Food & Dining": { icon: "utensils", color: "red" },
+    "Transportation": { icon: "car", color: "green" }
   };
 
   const groupedRecs = {
@@ -196,47 +349,67 @@ function renderRecommendations(result) {
 
   recommendations.forEach(rec => {
     const l = rec.toLowerCase();
-    if (l.includes("hotel") || l.includes("guesthouse") || l.includes("backpackers") || l.includes("lodging")) {
+    if (l.includes("hotel") || l.includes("guesthouse") || l.includes("backpackers") || l.includes("lodging") || l.includes("lodge")) {
       groupedRecs["Recommended Accommodation"].push(rec);
-    } else if (l.includes("restaurant") || l.includes("food") || l.includes("meal") || l.includes("market")) {
+    } else if (l.includes("restaurant") || l.includes("food") || l.includes("meal") || l.includes("market") || l.includes("dining")) {
       groupedRecs["Food & Dining"].push(rec);
-    } else if (l.includes("transport") || l.includes("bus") || l.includes("taxi") || l.includes("route")) {
+    } else if (l.includes("transport") || l.includes("bus") || l.includes("taxi") || l.includes("route") || l.includes("moto")) {
       groupedRecs["Transportation"].push(rec);
     } else {
       groupedRecs["Suggested Activities"].push(rec);
     }
   });
 
-  Object.entries(categories).forEach(([name, icon]) => {
+  // Render Category Cards in a modern grid
+  const grid = document.createElement("div");
+  grid.className = "grid grid-cols-1 md:grid-cols-2 gap-6 mb-8";
+  
+  Object.entries(categories).forEach(([name, config]) => {
     const recs = groupedRecs[name];
     if (recs.length === 0) return;
 
     const card = document.createElement("div");
-    card.className = "rec-card";
+    card.className = "bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition-shadow duration-300 animate-in fade-in zoom-in-95 duration-500";
     
     let itemsHtml = recs.map(text => `
-      <li class="rec-item">
-        <span class="rec-item-check">✓</span>
-        <span>${text}</span>
-      </li>
+      <div class="flex items-start gap-3 group">
+        <div class="mt-1.5 w-1.5 h-1.5 rounded-full bg-brand/40 group-hover:bg-brand transition-colors"></div>
+        <p class="text-sm text-gray-600 leading-relaxed">${text}</p>
+      </div>
     `).join("");
 
     card.innerHTML = `
-      <div class="rec-card-head">
-        <span>${icon}</span>
-        <h4>${name}</h4>
+      <div class="flex items-center gap-3 mb-5">
+        <div class="w-10 h-10 bg-gray-50 text-gray-400 rounded-xl flex items-center justify-center">
+          <i data-lucide="${config.icon}" class="w-5 h-5"></i>
+        </div>
+        <h4 class="font-bold text-gray-800">${name}</h4>
       </div>
-      <ul class="rec-list">
+      <div class="space-y-4">
         ${itemsHtml}
-      </ul>
+      </div>
     `;
-    recommendationsContainer.appendChild(card);
+    grid.appendChild(card);
   });
+  
+  recommendationsContainer.appendChild(grid);
 
-  const saveBtn = document.createElement("button");
-  saveBtn.className = "primary-btn save-itinerary-btn";
-  saveBtn.innerHTML = "Save to My Itinerary →";
-  recommendationsContainer.appendChild(saveBtn);
+  // Footer Actions
+  const footer = document.createElement("div");
+  footer.className = "flex items-center justify-between bg-white/50 backdrop-blur-sm border border-white p-4 rounded-3xl";
+  footer.innerHTML = `
+    <p class="text-xs text-gray-400 font-medium px-4 italic">This plan was generated using local data and Groq AI</p>
+    <button class="bg-brand hover:bg-brand-deep text-white font-bold py-3 px-8 rounded-2xl shadow-lg shadow-brand/20 transition-all flex items-center gap-2 group">
+      Save Itinerary 
+      <i data-lucide="arrow-right" class="w-4 h-4 group-hover:translate-x-1 transition-transform"></i>
+    </button>
+  `;
+  recommendationsContainer.appendChild(footer);
+
+  // Refresh icons
+  if (window.lucide) {
+    lucide.createIcons();
+  }
 }
 
 // Auto-fetch distance logic
@@ -404,6 +577,7 @@ if (chatForm) {
     appendMessage("user", message);
     chatHistory.push({ role: "user", content: message });
     input.value = "";
+    showTypingIndicator();
 
     try {
       const response = await fetch("/chat", {
@@ -418,9 +592,11 @@ if (chatForm) {
       if (!response.ok) throw new Error("Chat request failed");
 
       const result = await response.json();
+      hideTypingIndicator();
       appendMessage("ai", result.response);
       chatHistory.push({ role: "assistant", content: result.response });
     } catch (error) {
+      hideTypingIndicator();
       appendMessage("ai", "The assistant is temporarily unavailable.");
     }
   });

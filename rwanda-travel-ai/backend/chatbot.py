@@ -3,7 +3,7 @@ import re
 from pathlib import Path
 from typing import Iterable
 
-import requests
+from groq import Groq
 from dotenv import load_dotenv
 
 from backend.travel_context import build_travel_context
@@ -12,9 +12,16 @@ ENV_PATH = Path(__file__).with_name(".env")
 load_dotenv(ENV_PATH)
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
-GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 GROQ_FALLBACK_MODEL = "llama-3.1-8b-instant"
+
+# Initialize Groq client
+client = None
+if GROQ_API_KEY:
+    try:
+        client = Groq(api_key=GROQ_API_KEY)
+    except Exception as e:
+        print(f"Failed to initialize Groq Client in chatbot.py: {e}")
 
 
 def _normalize(text: str) -> str:
@@ -85,11 +92,11 @@ def _local_chat_response(message: str) -> str:
 
 
 def ask_groq(message: str, history: list[dict] | None = None) -> str:
+    if not client or not GROQ_API_KEY:
+        return _local_chat_response(message)
+
     cleaned_history = _sanitize_history(history)
     travel_context = build_travel_context(message)
-
-    if not GROQ_API_KEY:
-        return _local_chat_response(message)
 
     system_prompt = (
         "You are Rwanda Travel AI, a natural and professional assistant. "
@@ -113,27 +120,25 @@ def ask_groq(message: str, history: list[dict] | None = None) -> str:
     messages.extend(cleaned_history)
     messages.append({"role": "user", "content": message})
 
-    headers = {
-        "Authorization": f"Bearer {GROQ_API_KEY}",
-        "Content-Type": "application/json",
-    }
-    data = {
-        "model": GROQ_MODEL,
-        "messages": messages,
-        "temperature": 0.7,
-    }
-
     try:
-        response = requests.post(GROQ_URL, json=data, headers=headers, timeout=30)
-        if response.status_code == 400 and "model_decommissioned" in response.text:
-            retry_data = dict(data)
-            retry_data["model"] = GROQ_FALLBACK_MODEL
-            response = requests.post(GROQ_URL, json=retry_data, headers=headers, timeout=30)
-        response.raise_for_status()
-        payload = response.json()
-        return payload["choices"][0]["message"]["content"]
-    except Exception:
-        return _local_chat_response(message)
+        completion = client.chat.completions.create(
+            model=GROQ_MODEL,
+            messages=messages,
+            temperature=0.7,
+        )
+        return completion.choices[0].message.content
+    except Exception as e:
+        print(f"Error in ask_groq (chatbot.py): {e}")
+        # Try fallback model if first one fails
+        try:
+            completion = client.chat.completions.create(
+                model=GROQ_FALLBACK_MODEL,
+                messages=messages,
+                temperature=0.7,
+            )
+            return completion.choices[0].message.content
+        except Exception:
+            return _local_chat_response(message)
 
 
 def get_trip_recommendations(
@@ -145,8 +150,7 @@ def get_trip_recommendations(
     travelers: int | None = None,
 ) -> list[str]:
     """Uses GROQ to get real-world Rwanda travel recommendations based on route and interests."""
-    if not GROQ_API_KEY:
-        # Fallback to empty list if no API key; main logic handles basic fallback
+    if not client or not GROQ_API_KEY:
         return []
 
     interest_str = ", ".join(interests) if interests else "General Sightseeing"
@@ -173,23 +177,17 @@ def get_trip_recommendations(
         {"role": "user", "content": prompt}
     ]
 
-    headers = {
-        "Authorization": f"Bearer {GROQ_API_KEY}",
-        "Content-Type": "application/json",
-    }
-    data = {
-        "model": GROQ_MODEL,
-        "messages": messages,
-        "temperature": 0.6,
-    }
-
     try:
-        response = requests.post(GROQ_URL, json=data, headers=headers, timeout=30)
-        response.raise_for_status()
-        content = response.json()["choices"][0]["message"]["content"]
+        completion = client.chat.completions.create(
+            model=GROQ_MODEL,
+            messages=messages,
+            temperature=0.6,
+        )
+        content = completion.choices[0].message.content
         
         # Clean up bullet points (remove *, -, etc.)
         lines = [line.strip().lstrip("*-•").strip() for line in content.split("\n") if line.strip()]
         return [line for line in lines if len(line) > 5][:10]
-    except Exception:
+    except Exception as e:
+        print(f"Error in get_trip_recommendations: {e}")
         return []

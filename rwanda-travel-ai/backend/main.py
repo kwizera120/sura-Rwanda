@@ -151,19 +151,19 @@ class HousingChatRequest(BaseModel):
 
 @app.post("/housing-chat")
 def housing_chat(data: HousingChatRequest):
-    from backend.gemini_bot import get_housing_chatbot_response
+    from backend.groq_bot import get_housing_chatbot_response
     reply = get_housing_chatbot_response(data.message, data.history, data.property_context)
     return {"response": reply}
 
 
 @app.post("/chat")
 def chat(data: ChatRequest):
-    from backend.gemini_bot import ask_gemini
+    from backend.groq_bot import ask_groq
     system_instruction = (
         "You are Rwanda Travel AI, a professional and helpful travel assistant. "
         "You help users plan trips, estimate fares, and discover destinations in Rwanda."
     )
-    reply = ask_gemini(data.message, data.history, system_instruction)
+    reply = ask_groq(data.message, data.history, system_instruction)
     return {"response": reply}
 
 
