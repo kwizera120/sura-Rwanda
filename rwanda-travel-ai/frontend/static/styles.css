@@ -630,11 +630,14 @@ input:focus, select:focus {
 .chat-window {
   flex: 1;
   overflow-y: auto;
-  padding: 20px;
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
   scroll-behavior: smooth;
+  background-image: 
+    radial-gradient(circle at 10% 20%, rgba(102, 194, 150, 0.03) 0%, transparent 20%),
+    radial-gradient(circle at 90% 80%, rgba(74, 144, 115, 0.03) 0%, transparent 20%);
 }
 
 .chat-window::-webkit-scrollbar {

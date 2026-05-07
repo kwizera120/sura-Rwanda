@@ -146,14 +146,16 @@ function appendMessage(role, text) {
   
   const isAI = role === "ai" || role === "assistant";
   
-  // Extract property data if present
+  // Clean text and extract property data
   let propertyData = null;
   let cleanText = text;
+
+  // Robust extraction of [PROPERTY_DATA] blocks
   const propertyMatch = text.match(/\[PROPERTY_DATA\]([\s\S]*?)\[\/PROPERTY_DATA\]/);
-  
   if (propertyMatch) {
     try {
       propertyData = JSON.parse(propertyMatch[1].trim());
+      // Remove the tag from the text that will be rendered as markdown
       cleanText = text.replace(/\[PROPERTY_DATA\][\s\S]*?\[\/PROPERTY_DATA\]/, '').trim();
     } catch (e) {
       console.error("Failed to parse property data", e);
@@ -161,63 +163,83 @@ function appendMessage(role, text) {
   }
 
   const article = document.createElement("article");
-  article.className = `flex w-full mb-6 ${isAI ? 'justify-start' : 'justify-end'} animate-in fade-in slide-in-from-bottom-2 duration-300`;
+  // Enhanced animations and spacing
+  article.className = `flex w-full mb-8 ${isAI ? 'justify-start' : 'justify-end'} transition-all duration-500 ease-out animate-in fade-in slide-in-from-bottom-4`;
 
   const container = document.createElement("div");
-  container.className = `flex max-w-[85%] ${isAI ? 'flex-row' : 'flex-row-reverse'} items-start gap-3`;
+  container.className = `flex max-w-[90%] md:max-w-[80%] ${isAI ? 'flex-row' : 'flex-row-reverse'} items-start gap-4`;
 
+  // Professional Icon/Avatar
   const iconDiv = document.createElement("div");
-  iconDiv.className = `flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${isAI ? 'bg-brand text-white' : 'bg-gray-200 text-gray-600'}`;
-  iconDiv.innerHTML = isAI ? '<i data-lucide="bot" class="w-5 h-5"></i>' : '<i data-lucide="user" class="w-5 h-5"></i>';
+  iconDiv.className = `flex-shrink-0 w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg transition-transform hover:scale-110 ${isAI ? 'bg-gradient-to-br from-brand to-brand-deep text-white' : 'bg-white border border-gray-100 text-gray-400'}`;
+  iconDiv.innerHTML = isAI ? '<i data-lucide="bot" class="w-6 h-6"></i>' : '<i data-lucide="user" class="w-6 h-6"></i>';
 
   const contentWrapper = document.createElement("div");
-  contentWrapper.className = `flex flex-col ${isAI ? 'items-start' : 'items-end'} gap-2`;
+  contentWrapper.className = `flex flex-col ${isAI ? 'items-start' : 'items-end'} gap-3`;
 
+  // Message Bubble with better design
   const bubble = document.createElement("div");
-  bubble.className = `px-4 py-3 rounded-2xl shadow-sm ${
+  bubble.className = `relative px-5 py-4 rounded-3xl shadow-sm transition-all hover:shadow-md ${
     isAI 
-      ? 'bg-white text-gray-800 rounded-tl-none border border-gray-100' 
-      : 'bg-brand text-white rounded-tr-none'
+      ? 'bg-white text-gray-800 rounded-tl-none border border-gray-100/50' 
+      : 'bg-brand text-white rounded-tr-none shadow-brand/20'
   }`;
 
+  // Markdown Body with full prose support for tables, lists, etc.
   const body = document.createElement("div");
-  body.className = `prose prose-sm max-w-none ${isAI ? 'text-gray-800' : 'text-white prose-invert'} 
-    prose-p:leading-relaxed prose-pre:bg-gray-800 prose-pre:text-gray-100 prose-strong:font-bold`;
-  body.innerHTML = marked.parse(cleanText);
+  body.className = `prose prose-sm md:prose-base max-w-none ${isAI ? 'text-gray-700' : 'text-white prose-invert'} 
+    prose-p:leading-relaxed prose-strong:text-brand prose-strong:font-bold 
+    prose-table:border prose-table:rounded-xl prose-th:bg-gray-50 prose-td:p-2 
+    prose-ul:list-disc prose-ol:list-decimal`;
+  
+  // Use marked with tables support
+  if (typeof marked !== 'undefined') {
+    body.innerHTML = marked.parse(cleanText);
+  } else {
+    body.textContent = cleanText;
+  }
 
   bubble.appendChild(body);
   contentWrapper.appendChild(bubble);
 
-  // Render Housing Card if data exists
+  // Render Professional Housing Card if data exists
   if (propertyData) {
     const card = document.createElement("div");
-    card.className = "bg-white border border-gray-100 rounded-xl overflow-hidden shadow-md max-w-sm hover:shadow-lg transition-shadow duration-300";
+    card.className = "w-full max-w-sm bg-white border border-gray-100 rounded-[2rem] overflow-hidden shadow-xl shadow-gray-200/50 hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 group";
     card.innerHTML = `
-      <div class="h-40 bg-gray-200 relative overflow-hidden">
+      <div class="h-56 bg-gray-100 relative overflow-hidden">
         <img src="${propertyData.image_url || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=800&q=80'}" 
-             alt="${propertyData.title}" class="w-full h-full object-cover">
-        <div class="absolute top-2 right-2 bg-brand text-white text-xs font-bold px-2 py-1 rounded">
+             alt="${propertyData.title}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
+        <div class="absolute top-4 right-4 bg-white/90 backdrop-blur-md text-brand font-black px-4 py-2 rounded-2xl shadow-lg border border-brand/10">
           ${propertyData.price}
         </div>
+        <div class="absolute bottom-4 left-4 flex gap-2">
+           <span class="bg-black/50 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest">Featured</span>
+        </div>
       </div>
-      <div class="p-4">
-        <h4 class="font-bold text-gray-800 text-base mb-1">${propertyData.title}</h4>
-        <div class="flex items-center text-gray-500 text-xs mb-3">
-          <i data-lucide="map-pin" class="w-3 h-3 mr-1"></i>
+      <div class="p-6">
+        <h4 class="font-black text-gray-900 text-lg mb-2 group-hover:text-brand transition-colors">${propertyData.title}</h4>
+        <div class="flex items-center text-gray-400 text-sm mb-6">
+          <i data-lucide="map-pin" class="w-4 h-4 mr-2 text-brand"></i>
           ${propertyData.location}
         </div>
-        <div class="flex items-center gap-4 border-t pt-3">
-          <div class="flex items-center text-gray-600 text-xs">
-            <i data-lucide="bed" class="w-4 h-4 mr-1 text-brand"></i>
-            ${propertyData.bedrooms} Bed
+        <div class="grid grid-cols-2 gap-4 border-t border-gray-50 pt-6">
+          <div class="flex items-center gap-3 bg-gray-50/50 p-3 rounded-2xl">
+            <div class="w-8 h-8 bg-white rounded-xl flex items-center justify-center shadow-sm text-brand">
+              <i data-lucide="bed" class="w-4 h-4"></i>
+            </div>
+            <span class="text-xs font-bold text-gray-600">${propertyData.bedrooms} Beds</span>
           </div>
-          <div class="flex items-center text-gray-600 text-xs">
-            <i data-lucide="bath" class="w-4 h-4 mr-1 text-brand"></i>
-            ${propertyData.bathrooms} Bath
+          <div class="flex items-center gap-3 bg-gray-50/50 p-3 rounded-2xl">
+            <div class="w-8 h-8 bg-white rounded-xl flex items-center justify-center shadow-sm text-brand">
+              <i data-lucide="bath" class="w-4 h-4"></i>
+            </div>
+            <span class="text-xs font-bold text-gray-600">${propertyData.bathrooms} Baths</span>
           </div>
         </div>
-        <button class="w-full mt-4 bg-gray-50 hover:bg-gray-100 text-brand font-bold py-2 rounded-lg text-sm transition-colors">
-          View Details
+        <button class="w-full mt-6 bg-brand hover:bg-brand-deep text-white font-black py-4 rounded-2xl shadow-lg shadow-brand/20 transition-all flex items-center justify-center gap-2 group/btn">
+          View Property Details
+          <i data-lucide="chevron-right" class="w-4 h-4 transition-transform group-hover/btn:translate-x-1"></i>
         </button>
       </div>
     `;
@@ -225,7 +247,7 @@ function appendMessage(role, text) {
   }
 
   const time = document.createElement("span");
-  time.className = "text-[10px] text-gray-400 mt-1 px-1";
+  time.className = "text-[10px] text-gray-400 mt-1 px-2 font-medium uppercase tracking-tighter";
   time.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   contentWrapper.appendChild(time);
 
@@ -234,8 +256,17 @@ function appendMessage(role, text) {
   article.appendChild(container);
   
   chatWindow.appendChild(article);
-  if (window.lucide) lucide.createIcons();
-  chatWindow.scrollTop = chatWindow.scrollHeight;
+  
+  // Refresh Lucide icons
+  if (window.lucide) {
+    lucide.createIcons();
+  }
+  
+  // Smooth scroll to bottom
+  chatWindow.scrollTo({
+    top: chatWindow.scrollHeight,
+    behavior: 'smooth'
+  });
 }
 
 function showTypingIndicator() {
