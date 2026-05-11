@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Building2, Home, MapPin, Ruler, Bed, Bath, Layers, Calendar, Car, Sofa, GraduationCap, Hospital, TrendingUp, Search, Info, Send, X, User, Bot, Loader2 } from 'lucide-react';
+import { Building2, Home, MapPin, Ruler, Bed, Bath, Layers, Calendar, Car, Sofa, GraduationCap, Hospital, TrendingUp, Search, Info, Send, X, Bot, Loader2, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -9,6 +9,9 @@ import { Checkbox } from '../components/ui/checkbox';
 import { Badge } from '../components/ui/badge';
 import { Navigation } from '../components/Navigation';
 import { Footer } from '../components/Footer';
+import { AI_API_BASE_URL } from '../api/aiApi';
+import { ChatMessageBubble, ChatTypingIndicator } from '../components/chat/ChatMessageBubble';
+import { buildRwandaRealEstateContext } from '../data/rwandaRealEstateMarket';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 
 interface Message {
@@ -17,6 +20,7 @@ interface Message {
 }
 
 export function Housing() {
+  const housingMarketContext = buildRwandaRealEstateContext();
   const [locations, setLocations] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [predictedPrice, setPredictedPrice] = useState<number | null>(null);
@@ -62,7 +66,7 @@ export function Housing() {
 
   const fetchHousingLocations = async () => {
     try {
-      const response = await fetch('http://localhost:8000/housing-locations');
+      const response = await fetch(`${AI_API_BASE_URL}/housing-locations`);
       const data = await response.json();
       if (data.locations) {
         setLocations(data.locations.sort());
@@ -104,7 +108,7 @@ export function Housing() {
     };
 
     try {
-      const response = await fetch('http://localhost:8000/predict-housing', {
+      const response = await fetch(`${AI_API_BASE_URL}/predict-housing`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -139,11 +143,11 @@ export function Housing() {
     setIsChatLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8000/housing-chat', {
+      const response = await fetch(`${AI_API_BASE_URL}/housing-chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: inputMessage,
+          message: `${housingMarketContext}\n\nUser question:\n${inputMessage}`,
           history: chatMessages.map(m => ({ role: m.role, content: m.content })),
           property_context: predictedPrice ? {
             ...formData,
@@ -520,59 +524,54 @@ export function Housing() {
               initial={{ opacity: 0, y: 20, scale: 0.95, transformOrigin: 'bottom right' }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 20, scale: 0.95 }}
-              className="mb-4 bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden flex flex-col h-[500px] w-[380px]"
+              className="mb-4 flex h-[560px] w-[380px] flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl max-[420px]:w-[calc(100vw-2rem)]"
             >
-              <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
-                <h4 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                  <Bot className="w-5 h-5 text-primary" />
-                  Housing AI Assistant
-                </h4>
+              <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-900 p-5 text-white">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 shadow-lg shadow-black/10 backdrop-blur">
+                    <Sparkles className="h-5 w-5 text-emerald-200" />
+                  </div>
+                  <div>
+                    <h4 className="flex items-center gap-2 text-lg font-bold tracking-tight">
+                      <Bot className="h-5 w-5 text-emerald-200" />
+                      Housing AI Assistant
+                    </h4>
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-100/70">
+                      Market-aware property help
+                    </p>
+                  </div>
+                </div>
                 <button 
                   onClick={() => setIsChatOpen(false)}
-                  className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                  className="rounded-2xl p-2 transition-colors hover:bg-white/10"
                 >
-                  <X className="w-5 h-5 text-slate-500" />
+                  <X className="h-5 w-5 text-white" />
                 </button>
               </div>
 
-              <div className="flex-grow overflow-y-auto p-4 space-y-4 bg-slate-50/50">
+              <div className="flex-grow space-y-4 overflow-y-auto bg-slate-50/80 px-4 py-5">
                 {chatMessages.map((m, idx) => (
-                  <div key={idx} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[85%] p-3 rounded-2xl text-sm ${
-                      m.role === 'user' 
-                        ? 'bg-primary text-white rounded-tr-none' 
-                        : 'bg-white border border-slate-200 text-slate-700 rounded-tl-none shadow-sm'
-                    }`}>
-                      <div className="flex items-center gap-2 mb-1">
-                        {m.role === 'user' ? <User className="w-3 h-3" /> : <Bot className="w-3 h-3 text-primary" />}
-                        <span className="text-[10px] font-bold uppercase tracking-wider opacity-70">
-                          {m.role === 'user' ? 'You' : 'AI Assistant'}
-                        </span>
-                      </div>
-                      <p className="leading-relaxed">{m.content}</p>
-                    </div>
-                  </div>
+                  <ChatMessageBubble key={idx} role={m.role} content={m.content} />
                 ))}
-                {isChatLoading && (
-                  <div className="flex justify-start">
-                    <div className="bg-white border border-slate-200 p-3 rounded-2xl rounded-tl-none shadow-sm">
-                      <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                    </div>
-                  </div>
-                )}
+                <AnimatePresence>{isChatLoading && <ChatTypingIndicator />}</AnimatePresence>
                 <div ref={chatEndRef} />
               </div>
 
-              <form onSubmit={handleSendMessage} className="p-4 border-t border-slate-100 bg-white">
+              <form onSubmit={handleSendMessage} className="border-t border-slate-100 bg-white p-4">
                 <div className="flex gap-2">
                   <Input
                     placeholder="Ask about properties..."
                     value={inputMessage}
                     onChange={(e) => setInputMessage(e.target.value)}
-                    className="rounded-xl border-slate-200 focus:ring-primary"
+                    className="rounded-2xl border-slate-200 bg-slate-50 px-4 py-6 text-sm shadow-inner shadow-slate-100 focus:border-primary focus:ring-4 focus:ring-emerald-100"
                   />
-                  <Button type="submit" size="icon" disabled={isChatLoading} className="rounded-xl shrink-0">
-                    <Send className="w-4 h-4" />
+                  <Button
+                    type="submit"
+                    size="icon"
+                    disabled={isChatLoading || !inputMessage.trim()}
+                    className="h-12 w-12 shrink-0 rounded-2xl bg-gradient-to-br from-primary to-emerald-700 shadow-lg shadow-emerald-600/20 transition-all hover:scale-[1.03] active:scale-95"
+                  >
+                    {isChatLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                   </Button>
                 </div>
               </form>

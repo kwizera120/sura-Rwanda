@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Send, Bot, Sparkles, Languages, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, Send, Bot, Sparkles, Languages, MessageSquare, Loader2 } from 'lucide-react';
 import { aiApi } from '../api/aiApi';
+import { ChatMessageBubble, ChatTypingIndicator } from './chat/ChatMessageBubble';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface Message {
@@ -89,7 +90,7 @@ export function AIChatbot() {
             initial={{ opacity: 0, y: 100, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 100, scale: 0.9 }}
-            className="w-[400px] max-w-[calc(100vw-2rem)] h-[600px] bg-white/90 backdrop-blur-xl rounded-[2rem] shadow-2xl border border-white/20 flex flex-col overflow-hidden"
+              className="w-[400px] max-w-[calc(100vw-2rem)] h-[600px] bg-white/90 backdrop-blur-xl rounded-[2rem] shadow-2xl border border-white/20 flex flex-col overflow-hidden"
           >
             {/* Header */}
             <div className="bg-slate-900 p-6 flex items-center justify-between">
@@ -151,36 +152,15 @@ export function AIChatbot() {
             )}
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            <div className="flex-1 overflow-y-auto bg-slate-50/80 p-6 space-y-4">
               {messages.map((message, index) => (
-                <motion.div
+                <ChatMessageBubble
                   key={index}
-                  initial={{ opacity: 0, x: message.isBot ? -10 : 10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className={`flex ${message.isBot ? 'justify-start' : 'justify-end'}`}
-                >
-                  <div
-                    className={`max-w-[85%] p-4 rounded-2xl shadow-sm ${
-                      message.isBot
-                        ? 'bg-slate-50 text-slate-800 border border-slate-100 rounded-tl-none'
-                        : 'bg-primary text-white shadow-lg shadow-green-500/20 rounded-tr-none font-medium'
-                    }`}
-                  >
-                    <p className="text-sm leading-relaxed">{message.text}</p>
-                  </div>
-                </motion.div>
+                  role={message.isBot ? 'assistant' : 'user'}
+                  content={message.text}
+                />
               ))}
-              {loading && (
-                <div className="flex justify-start">
-                  <div className="bg-slate-50 p-4 rounded-2xl rounded-tl-none border border-slate-100">
-                    <div className="flex gap-1">
-                      <div className="w-2 h-2 bg-primary/40 rounded-full animate-bounce" />
-                      <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce [animation-delay:0.2s]" />
-                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:0.4s]" />
-                    </div>
-                  </div>
-                </div>
-              )}
+              <AnimatePresence>{loading && <ChatTypingIndicator />}</AnimatePresence>
               <div ref={messagesEndRef} />
             </div>
 
@@ -198,9 +178,9 @@ export function AIChatbot() {
                 <button
                   onClick={handleSend}
                   disabled={loading || !input.trim()}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-primary text-white rounded-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+                  className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl bg-primary text-white transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
                 >
-                  <Send className="w-5 h-5" />
+                  {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="w-5 h-5" />}
                 </button>
               </div>
               <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mt-4 text-center">

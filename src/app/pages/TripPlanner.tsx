@@ -2,9 +2,10 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { Navigation } from '../components/Navigation';
 import { Footer } from '../components/Footer';
 import { aiApi } from '../api/aiApi';
+import { ChatMessageBubble, ChatTypingIndicator } from '../components/chat/ChatMessageBubble';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sparkles, Compass, MapPin } from 'lucide-react';
+import { Loader2, Mic, Send, Sparkles, Compass, MapPin, X } from 'lucide-react';
 import './TripPlanner.css';
 
 // Types for AI module
@@ -52,6 +53,7 @@ export function TripPlanner() {
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([
     { role: 'assistant', content: 'Hello! Ask about routes, prices, or how to use the fare estimator.' }
   ]);
+  const [isChatLoading, setIsChatLoading] = useState(false);
   const [isChatRecording, setIsChatRecording] = useState(false);
   const chatWindowRef = useRef<HTMLDivElement>(null);
 
@@ -156,11 +158,12 @@ export function TripPlanner() {
   // Chat Handlers
   const handleSendChat = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!chatMessage.trim()) return;
+    if (!chatMessage.trim() || isChatLoading) return;
 
     const userMsg: ChatMessage = { role: 'user', content: chatMessage };
     setChatHistory(prev => [...prev, userMsg]);
     setChatMessage('');
+    setIsChatLoading(true);
 
     try {
       const response = await aiApi.chat({
@@ -170,6 +173,8 @@ export function TripPlanner() {
       setChatHistory(prev => [...prev, { role: 'assistant', content: response.response }]);
     } catch (error) {
       setChatHistory(prev => [...prev, { role: 'assistant', content: 'The assistant is temporarily unavailable.' }]);
+    } finally {
+      setIsChatLoading(false);
     }
   };
 
@@ -581,45 +586,59 @@ Note: This report is a strategic guide generated based on current AI modeling an
                 initial={{ opacity: 0, scale: 0.8, y: 20, transformOrigin: 'bottom right' }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.8, y: 20 }}
-                className="chatbot-panel active absolute bottom-20 right-0 w-[360px] bg-white rounded-3xl shadow-2xl border border-[#4a907326] overflow-hidden flex flex-col"
+                className="chatbot-panel active absolute bottom-20 right-0 flex h-[520px] w-[348px] max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-[2rem] border border-[#4a907326] bg-white shadow-2xl"
               >
-                <div className="chatbot-header p-5 flex justify-between items-center bg-gradient-to-br from-[#66c296] to-[#4a9073] text-white font-bold">
-                  <span className="font-['Space_Grotesk']">AI Assistant</span>
-                  <button className="chatbot-close w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-sm font-bold" onClick={() => setIsChatOpen(false)}>X</button>
-                </div>
-                <div className="chatbot-body p-5 flex flex-col h-full">
-                  <div className="chat-window h-[320px] overflow-y-auto flex flex-col gap-4 mb-4 pr-2" ref={chatWindowRef}>
-                    {chatHistory.map((msg, i) => (
-                      <article key={i} className={`message ${msg.role} p-4 rounded-2xl text-sm leading-relaxed border border-[#4a907326] ${msg.role === 'user' ? 'bg-[#e5f5ea] self-end rounded-br-none' : 'bg-white self-start rounded-bl-none'}`}>
-                        <p className="message-role text-[10px] font-bold text-[#4a9073] uppercase tracking-widest mb-1">{msg.role === 'user' ? 'You' : 'Rwanda Travel AI'}</p>
-                        <p className="text-[#1b3b2c]">{msg.content}</p>
-                      </article>
-                    ))}
+                <div className="chatbot-header flex items-center justify-between bg-gradient-to-br from-[#66c296] to-[#4a9073] px-4 py-3.5 text-white font-bold">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/15 shadow-md shadow-emerald-950/10 backdrop-blur">
+                      <Sparkles className="h-4.5 w-4.5" />
+                    </div>
+                    <div>
+                      <span className="font-['Space_Grotesk'] text-[15px] leading-none">AI Assistant</span>
+                      <p className="mt-1 text-[9px] font-black uppercase tracking-[0.16em] text-emerald-50/75">Live route guidance</p>
+                    </div>
                   </div>
-                  <form onSubmit={handleSendChat} className="chat-form flex gap-2">
-                    <div className="chat-input-wrapper relative flex-1">
+                  <button
+                    className="chatbot-close flex h-8.5 w-8.5 items-center justify-center rounded-2xl bg-white/15 text-sm font-bold transition-colors hover:bg-white/25"
+                    onClick={() => setIsChatOpen(false)}
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="chatbot-body flex h-full flex-col bg-slate-50/90">
+                  <div className="chat-window min-h-0 flex-1 overflow-y-auto px-4 py-5" ref={chatWindowRef}>
+                    {chatHistory.map((msg, i) => (
+                      <ChatMessageBubble key={i} role={msg.role} content={msg.content} />
+                    ))}
+                    <AnimatePresence>{isChatLoading && <ChatTypingIndicator />}</AnimatePresence>
+                  </div>
+                  <form onSubmit={handleSendChat} className="chat-form border-t border-slate-100 bg-white px-4 pb-4 pt-3">
+                    <div className="flex gap-2">
+                      <div className="chat-input-wrapper relative flex-1">
                       <input 
                         type="text" 
                         placeholder={isChatRecording ? "Listening..." : "Type a message..."}
                         required 
-                        className="w-full py-3 px-4 pr-12 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#66c296]"
+                        className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-4 pr-12 text-[13px] text-slate-700 shadow-inner shadow-slate-100 transition-all focus:border-[#66c296] focus:outline-none focus:ring-4 focus:ring-emerald-100"
                         value={chatMessage}
                         onChange={e => setChatMessage(e.target.value)}
                       />
                       <button 
                         type="button" 
-                        className={`chat-mic-btn absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-[#4a9073] transition-all ${isChatRecording ? 'animate-pulse text-red-500' : ''}`}
+                        className={`chat-mic-btn absolute right-2 top-1/2 flex h-8.5 w-8.5 -translate-y-1/2 items-center justify-center rounded-xl text-[#4a9073] transition-all hover:bg-emerald-50 ${isChatRecording ? 'animate-pulse text-red-500' : ''}`}
                         onClick={toggleChatMic}
                       >
-                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
-                          <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-                          <line x1="12" y1="19" x2="12" y2="23"></line>
-                          <line x1="8" y1="23" x2="16" y2="23"></line>
-                        </svg>
+                        <Mic className="h-4 w-4" />
                       </button>
                     </div>
-                    <button className="bg-[#66c296] text-white px-5 rounded-xl font-bold text-sm shadow-md" type="submit">Send</button>
+                      <button
+                        className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-[#66c296] to-[#4a9073] text-white shadow-lg shadow-emerald-600/20 transition-all hover:scale-[1.03] active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+                        type="submit"
+                        disabled={isChatLoading || !chatMessage.trim()}
+                      >
+                        {isChatLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                      </button>
+                    </div>
                   </form>
                 </div>
               </motion.div>
