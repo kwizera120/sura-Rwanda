@@ -51,8 +51,14 @@ export const ThreeDWeatherIcon: React.FC<ThreeDWeatherIconProps> = ({ iconCode, 
         {/* Soft Moon Gradient */}
         <linearGradient id="moonFriendly" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#e0f2fe" />
-          <stop offset="100%" stopColor="#7dd3fc" />
+          <stop offset="100%" stopColor="#38bdf8" />
         </linearGradient>
+
+        {/* Night Stars Gradient */}
+        <radialGradient id="starGlow">
+          <stop offset="0%" stopColor="white" />
+          <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+        </radialGradient>
 
         {/* Diffused Outer Glow */}
         <filter id="diffusedGlow" x="-100%" y="-100%" width="300%" height="300%">
@@ -71,25 +77,23 @@ export const ThreeDWeatherIcon: React.FC<ThreeDWeatherIconProps> = ({ iconCode, 
 
     switch (code) {
       case '01': // Clear
-      case '02': // Few clouds (at night)
-      case '03': // Scattered (at night)
-      case '04': // Broken (at night)
+      case '02': // Few clouds
+      case '03': // Scattered
+      case '04': // Broken
         if (isNight) {
           return (
             <g>
               {defs}
               <g filter="url(#diffusedGlow)">
-                {/* Smooth crescent moon shape */}
+                {/* Simplified smooth crescent moon */}
                 <path 
-                  d="M12 4a8 8 0 0 0 0 16 8 8 0 0 1 0-16z" 
-                  fill="url(#moonFriendly)" 
-                  transform="rotate(-15 12 12)"
+                  d="M15 6 C10 6, 6 10, 6 15 C6 18, 8 21, 11 22 C9 20, 8 17, 8 14 C8 9, 12 5, 17 5 C18 5, 19 5, 20 6 C18 6, 17 6, 15 6 Z" 
+                  fill="url(#moonFriendly)"
                 />
-                <circle cx="12" cy="12" r="8" fill="none" stroke="white" strokeWidth="0.5" opacity="0.2" />
               </g>
               {/* Little twinkling stars */}
-              <motion.circle cx="18" cy="6" r="0.5" fill="white" animate={{ opacity: [0.2, 1, 0.2] }} transition={{ duration: 3, repeat: Infinity }} />
-              <motion.circle cx="6" cy="18" r="0.5" fill="white" animate={{ opacity: [0.2, 1, 0.2] }} transition={{ duration: 3, repeat: Infinity, delay: 1.5 }} />
+              <motion.circle cx="18" cy="8" r="1" fill="url(#starGlow)" animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 3, repeat: Infinity }} />
+              <motion.circle cx="6" cy="10" r="0.8" fill="url(#starGlow)" animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 3, repeat: Infinity, delay: 1.5 }} />
             </g>
           );
         }
