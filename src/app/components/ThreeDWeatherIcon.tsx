@@ -77,26 +77,29 @@ export const ThreeDWeatherIcon: React.FC<ThreeDWeatherIconProps> = ({ iconCode, 
         );
 
       case '02': // Few clouds
-      case '03': // Scattered clouds
-      case '04': // Broken clouds
+      case '03': // Scattered
+      case '04': // Broken
         return (
           <g>
-            <defs>
-              <linearGradient id="cloudGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#ffffff" />
-                <stop offset="100%" stopColor="#e2e8f0" />
-              </linearGradient>
-              <filter id="cloudShadow">
-                <feDropShadow dx="0" dy="1" stdDeviation="1" floodOpacity="0.2" />
-              </filter>
-            </defs>
-            {code === '02' && !isNight && (
-              <circle cx="16" cy="8" r="5" fill="#fbbf24" />
+            {defs}
+            {code === '02' && (
+              isNight ? (
+                <g filter="url(#softGlow)">
+                  <circle cx="16" cy="8" r="5" fill="url(#moonSmooth)" />
+                  <circle cx="18" cy="6" r="5" fill="currentColor" className="text-slate-900" />
+                </g>
+              ) : (
+                <circle cx="16" cy="8" r="5" fill="url(#sunSmooth)" filter="url(#softGlow)" />
+              )
             )}
             <path 
               d="M17.5 19c2.5 0 4.5-2 4.5-4.5S20 10 17.5 10c-.2 0-.4 0-.6.1C15.8 7.6 13.1 6 10 6 6.1 6 3 9.1 3 13c0 .1 0 .2 0 .3C1.2 14.1 0 15.9 0 18c0 2.2 1.8 4 4 4h13.5z" 
-              fill="url(#cloudGradient)" 
-              filter="url(#cloudShadow)"
+              fill="url(#cloudSmooth)"
+              filter="url(#softGlow)"
+            />
+            <path 
+              d="M17.5 19c2.5 0 4.5-2 4.5-4.5S20 10 17.5 10c-.2 0-.4 0-.6.1C15.8 7.6 13.1 6 10 6 6.1 6 3 9.1 3 13c0 .1 0 .2 0 .3C1.2 14.1 0 15.9 0 18c0 2.2 1.8 4 4 4h13.5z" 
+              fill="none" stroke="white" strokeWidth="0.5" opacity="0.4"
             />
           </g>
         );
