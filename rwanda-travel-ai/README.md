@@ -43,7 +43,7 @@ uvicorn backend.main:app --reload --port 8080
 4. **Open in Browser**
 Navigate to `http://localhost:8080`
 
-> If port `8000` is already in use, you can start the server on an alternate port:
+> If port `8000` is already in the process of using, you can start the server on an alternate port:
 > ```bash
 > uvicorn backend.main:app --reload --port 8080
 > ```
